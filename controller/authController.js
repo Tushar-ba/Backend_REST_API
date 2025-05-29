@@ -101,5 +101,37 @@ const login = [
   },
 ];
 
+const getProfile = async (req, res) => {
+    try {
+      if (!req.user || !req.user.userId) {
+        return res.status(401).json({ success: false, error: 'Unauthorized: No user data' });
+      }
+  
+      const user = await User.findById(req.user.userId).select('-password -refreshTokens');
+      if (!user) {
+        return res.status(404).json({ success: false, error: 'User not found' });
+      }
+  
+      res.json({
+        success: true,
+        data: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          profile: user.profile,
+          isActive: user.isActive,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+        user: { id: user._id, username: user.username, email: user.email, role: user.role },
+        meta: { timestamp: new Date().toISOString(), version: '1.0' },
+      });
+    } catch (error) {
+      console.error('Get profile error:', error);
+      res.status(500).json({ success: false, error: 'Server error' });
+    }
+  };
+  
 
-module.exports = { register, login};
+module.exports = { register, login, getProfile};

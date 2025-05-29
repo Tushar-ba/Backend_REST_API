@@ -12,6 +12,7 @@ const connectDB = require('./config/db');
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const usersProfile = require('./routes/auth')
 
 // Apply middleware
 app.use(express.json());
@@ -21,6 +22,7 @@ app.use(configureRateLimit());
 
 // Mount routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users',usersProfile)
 
 // Fallback port if PORT is not defined
 const port = process.env.PORT;
