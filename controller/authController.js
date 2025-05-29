@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const jwtService = require('../services/jwtService');
 
 const register = async (req,res) => {
     try {
@@ -37,4 +38,38 @@ const register = async (req,res) => {
     }
 }
 
-    module.exports = { register };
+const login = async (req,res) =>{
+
+    const {email,password} = req.body;
+    try {
+        if ( !email || !password){
+            res.status(400).json({error:"All the fields are mandatory"})
+        }
+
+        const user = await User.findOne({$or:[{email}]});
+        if(!user){
+            res.status(400).json({success:false, error:"User not found Please register"});
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if(!isMatch){
+            res.status(401).json({success:false,error:"Invalide password"})
+        }
+
+        const generateToken = await jwtService.generateAccessToken(user._id);
+        const refreshToken = await jwtService.generateAccessToken(user._id);
+
+        res.json({
+            success: true,
+            data: { generateToken, refreshToken },
+            user: { id: user._id, username: user.username, email, role: user.role },
+            meta: { timestamp: new Date().toISOString(), version: '1.0' },
+        });   
+        console.log("user logged in ", user.username)
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
+}
+
+    module.exports = { register, login };

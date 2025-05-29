@@ -43,7 +43,6 @@ const invalidateRefreshToken = async (token) => {
 
 module.exports = {
   generateAccessToken,
-  generateRefreshToken,
   verifyAccessToken,
   verifyRefreshToken,
   invalidateRefreshToken,
