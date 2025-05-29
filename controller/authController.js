@@ -101,6 +101,38 @@ const login = [
   },
 ];
 
+const refreshToken = [
+    body('refreshToken').notEmpty().withMessage('Refresh token is required'),
+    async (req,res)=>{
+        try{
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+              return res.status(400).json({ success: false, error: errors.array().map(e => e.msg).join(', ') });
+            }
+            const { refreshToken } = req.body;
+
+            const decoded = await jwtService.verifyRefreshToken(refreshToken);
+            await jwtService.invalidateRefreshToken(refreshToken);
+            const newAccessToken = jwtService.generateAccessToken(decoded.userId, decoded.role);
+            const newRefreshToken = await jwtService.generateRefreshToken(decoded.userId);
+      
+            const user = await User.findById(decoded.userId);
+      
+            res.json({
+              success: true,
+              data: { accessToken: newAccessToken, refreshToken: newRefreshToken },
+              user: { id: user._id, username: user.username, email: user.email, role: user.role },
+              meta: { timestamp: new Date().toISOString(), version: '1.0' },
+            });
+            console.log('Token refreshed for user:', user.username);
+          } catch (error) {
+            console.error('Refresh token error:', error);
+            res.status(403).json({ success: false, error: 'Invalid or expired refresh token' });
+          }
+        },
+      ];      
+
+      
 const getProfile = async (req, res) => {
     try {
       if (!req.user || !req.user.userId) {
@@ -191,4 +223,4 @@ const getProfile = async (req, res) => {
     },
   ];
 
-module.exports = { register, login, getProfile, updateProfile};
+module.exports = { register, login, getProfile, updateProfile, refreshToken};
