@@ -29,10 +29,18 @@ const verifySignature = (data, signature, publicKey) => {
   return verify.verify(publicKey, signature, 'hex');
 };
 
+const generateTransactionHash = (transaction) => {
+  const data = `${transaction.fromWallet}${transaction.toWallet}${transaction.amount}${transaction.fee || 0}${transaction.timestamp}`;
+  const hash = crypto.createHash('sha256');
+  hash.update(data);
+  return hash.digest('hex');
+};
+
 module.exports = {
   generateKeyPair,
   generateWalletAddress,
   signData,
-  verifySignature
+  verifySignature,
+  generateTransactionHash
 };
 

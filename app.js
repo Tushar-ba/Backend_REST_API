@@ -14,6 +14,7 @@ const connectDB = require('./config/db');
 // Import routes
 const authRoutes = require('./routes/auth');
 const walletRoutes = require('./routes/wallet');
+const transactionRoutes = require('./routes/transaction');
 // Apply middleware
 app.use(express.json());
 app.use(configureCors());
@@ -23,6 +24,7 @@ app.use(configureRateLimit());
 // Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/wallets', walletRoutes);
+app.use('/api/transactions', transactionRoutes);
 
 // Fallback port if PORT is not defined
 const port = process.env.PORT;
