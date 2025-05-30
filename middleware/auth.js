@@ -1,4 +1,5 @@
 const jwt = require ('jsonwebtoken');
+const Wallet = require('../models/Wallet');
 
 const authenticateToken = (req, res, next) =>{
     const authHeader = req.headers['authorization'];
@@ -23,4 +24,20 @@ const requireAdmin = (req, res, next) => {
     next();
   };
 
-module.exports = {authenticateToken, requireAdmin};
+const checkWalletOwnership = async (req, res, next) => {
+  try {
+    const wallet = await Wallet.findById(req.params.walletId);
+    if (!wallet) {
+      return res.status(404).json({ success: false, error: 'Wallet not found' });
+    }
+    if (wallet.userId.toString() !== req.user.userId) {
+      return res.status(403).json({ success: false, error: 'Access denied: Not your wallet' });
+    }
+    next();
+  } catch (error) {
+    console.error('Check wallet ownership error:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+module.exports = {authenticateToken, requireAdmin, checkWalletOwnership};

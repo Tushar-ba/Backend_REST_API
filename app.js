@@ -7,13 +7,13 @@ const configureCors = require('./middleware/cors');
 const configureHelmet = require('./middleware/helmet');
 const configureRateLimit = require('./middleware/rateLimit');
 
+
 // Import MongoDB connection
 const connectDB = require('./config/db');
 
 // Import routes
 const authRoutes = require('./routes/auth');
-const usersProfile = require('./routes/auth')
-
+const walletRoutes = require('./routes/wallet');
 // Apply middleware
 app.use(express.json());
 app.use(configureCors());
@@ -22,7 +22,7 @@ app.use(configureRateLimit());
 
 // Mount routes
 app.use('/api/auth', authRoutes);
-app.use('/api/users',usersProfile)
+app.use('/api/wallets', walletRoutes);
 
 // Fallback port if PORT is not defined
 const port = process.env.PORT;
