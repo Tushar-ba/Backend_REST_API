@@ -72,7 +72,6 @@ const getWallet = [
   }
 ];
 
-
 const getWalletBalance = [
   param('walletId').isMongoId().withMessage('Invalid wallet ID'),
   async (req, res) => {
@@ -104,9 +103,31 @@ const getWalletBalance = [
       wallet.balance = balance;
       await wallet.save();
 
+      const pendingTransactions = await Transaction.find({
+        $or: [{ fromWallet: wallet.address }, { toWallet: wallet.address }],
+        status: 'pending'
+      });
+
+      let pendingOutgoing = 0;
+      let pendingIncoming = 0;
+      pendingTransactions.forEach(tx => {
+        if (tx.fromWallet === wallet.address) {
+          pendingOutgoing += (tx.amount + (tx.fee || 0));
+        } else if (tx.toWallet === wallet.address) {
+          pendingIncoming += tx.amount;
+        }
+      });
+
       res.json({
         success: true,
-        data: { balance: wallet.balance },
+        data: { 
+          walletId: wallet._id,
+          address: wallet.address,
+          balance: wallet.balance,
+          pendingOutgoing,
+          pendingIncoming,
+          availableBalance: wallet.balance - pendingOutgoing
+        },
         user: { id: req.user.userId, username: req.user.username, role: req.user.role },
         meta: { timestamp: new Date().toISOString(), version: '1.0' }
       });
@@ -187,6 +208,67 @@ const getUserWallets = async (req, res) => {
   }
 };
 
+// Admin function to add balance to a wallet (for testing only)
+const addWalletBalance = [
+  param('walletId').isMongoId().withMessage('Invalid wallet ID'),
+  body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be a positive number'),
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, error: errors.array().map(e => e.msg).join(', ') });
+      }
+
+      // Only admin can add balance
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'Admin access required' });
+      }
+
+      const wallet = await Wallet.findById(req.params.walletId);
+      if (!wallet) {
+        return res.status(404).json({ success: false, error: 'Wallet not found' });
+      }
+
+      const amount = parseFloat(req.body.amount);
+
+      // Create a system transaction to add balance
+      const transaction = new Transaction({
+        userId: req.user.userId,
+        fromWallet: 'SYSTEM',
+        toWallet: wallet.address,
+        amount: amount,
+        fee: 0, // No fee for system transactions
+        signature: 'SYSTEM',
+        timestamp: Date.now(),
+        status: 'confirmed', // Automatically confirmed
+        hash: `SYSTEM_DEPOSIT_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
+      });
+
+      await transaction.save();
+
+      // Update wallet balance
+      wallet.balance += amount;
+      await wallet.save();
+
+      res.json({
+        success: true,
+        data: {
+          id: wallet._id,
+          address: wallet.address,
+          previousBalance: wallet.balance - amount,
+          newBalance: wallet.balance,
+          transactionId: transaction._id
+        },
+        user: { id: req.user.userId, username: req.user.username, role: req.user.role },
+        meta: { timestamp: new Date().toISOString(), version: '1.0' }
+      });
+    } catch (error) {
+      console.error('Add wallet balance error:', error);
+      res.status(500).json({ success: false, error: 'Server error' });
+    }
+  }
+];
+
 module.exports = {
-    createWallet, getWalletBalance, getWallet, updateWallet, getUserWallets
+    createWallet, getWalletBalance, getWallet, updateWallet, getUserWallets, addWalletBalance
 }

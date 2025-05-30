@@ -4,15 +4,27 @@ const {
   createWallet,
   getWallet,
   getWalletBalance,
-  updateWallet
+  updateWallet,
+  getUserWallets,
+  addWalletBalance
 } = require('../controller/walletController');
-const { authenticateToken, checkWalletOwnership } = require('../middleware/auth');
+const { authenticateToken, checkWalletOwnership, requireAdmin } = require('../middleware/auth');
 
-router.post('/createWallet', authenticateToken, createWallet);
-router.get('/', authenticateToken, getWallet);
-router.get('/:walletId', authenticateToken, checkWalletOwnership, getWalletBalance);
+router.post('/', authenticateToken, createWallet);
+
+// Get all user's wallets
+router.get('/', authenticateToken, getUserWallets);
+
+// Get specific wallet details
+router.get('/:walletId', authenticateToken, checkWalletOwnership, getWallet);
+
+// Get wallet balance
 router.get('/:walletId/balance', authenticateToken, checkWalletOwnership, getWalletBalance);
+
+// Update wallet metadata
 router.put('/:walletId', authenticateToken, checkWalletOwnership, updateWallet);
 
+// Add balance to wallet (admin only, for testing)
+router.post('/:walletId/balance', authenticateToken, requireAdmin, addWalletBalance);
 
 module.exports = router;
